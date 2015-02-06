@@ -4,10 +4,12 @@ Declare Function GetComputerNameA _
                         nSize As Long) As Long
 Public strComputerID As String
 Public Const LB_SETHORIZONTALEXTENT = &H194
-Public Declare Function SendMessageByNum Lib "user32" _
-        Alias "SendMessageA" (ByVal hwnd As Long, ByVal _
-        wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
- 
+Public Declare Function SendMessageByNum _
+               Lib "user32" _
+               Alias "SendMessageA" (ByVal hwnd As Long, _
+                                     ByVal wMsg As Long, _
+                                     ByVal wParam As Long, _
+                                     ByVal lParam As Long) As Long
 Public Function GetComputerName() As String
     Dim sResult As String * 255
     GetComputerNameA sResult, 255
@@ -15,10 +17,8 @@ Public Function GetComputerName() As String
 End Function
 Public Sub Logger(Message As String)
     Dim tmpMsg As String
-
-    tmpMsg = DateTime.Date & " " & DateTime.Time & ": " & Message
+    tmpMsg = Message 'DateTime.Date & " " & DateTime.Time & ": " & Message
     Sender.lstLog.AddItem tmpMsg, Sender.lstLog.ListCount
     Sender.lstLog.ListIndex = Sender.lstLog.NewIndex
-
-          SendMessageByNum Sender.lstLog.hwnd, LB_SETHORIZONTALEXTENT, 500, 0
+    SendMessageByNum Sender.lstLog.hwnd, LB_SETHORIZONTALEXTENT, 5000, 0
 End Sub

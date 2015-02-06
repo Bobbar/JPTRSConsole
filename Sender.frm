@@ -2,10 +2,10 @@ VERSION 5.00
 Object = "{248DD890-BB45-11CF-9ABC-0080C7E7B78D}#1.0#0"; "MSWINSCK.OCX"
 Begin VB.Form Sender 
    Caption         =   "JPTRS Console"
-   ClientHeight    =   6180
+   ClientHeight    =   6645
    ClientLeft      =   120
    ClientTop       =   450
-   ClientWidth     =   9540
+   ClientWidth     =   12915
    BeginProperty Font 
       Name            =   "Tahoma"
       Size            =   8.25
@@ -15,26 +15,36 @@ Begin VB.Form Sender
       Italic          =   0   'False
       Strikethrough   =   0   'False
    EndProperty
+   Icon            =   "Sender.frx":0000
    LinkTopic       =   "Form1"
-   ScaleHeight     =   6180
-   ScaleWidth      =   9540
+   ScaleHeight     =   6645
+   ScaleWidth      =   12915
    StartUpPosition =   3  'Windows Default
+   Begin VB.CommandButton cmdClear 
+      Caption         =   "Clear"
+      Height          =   360
+      Left            =   1320
+      TabIndex        =   4
+      Top             =   120
+      Width           =   990
+   End
    Begin VB.ListBox lstLog 
+      BackColor       =   &H00000000&
       BeginProperty Font 
-         Name            =   "Terminal"
-         Size            =   9
-         Charset         =   255
-         Weight          =   400
+         Name            =   "System"
+         Size            =   9.75
+         Charset         =   0
+         Weight          =   700
          Underline       =   0   'False
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   5100
-      Left            =   120
-      MultiSelect     =   1  'Simple
+      ForeColor       =   &H00FFFFFF&
+      Height          =   5580
+      Left            =   60
       TabIndex        =   3
       Top             =   600
-      Width           =   9315
+      Width           =   12795
    End
    Begin VB.CommandButton cmdConnect 
       Caption         =   "Connect"
@@ -62,19 +72,19 @@ Begin VB.Form Sender
    End
    Begin VB.TextBox txtCommand 
       BeginProperty Font 
-         Name            =   "Terminal"
-         Size            =   6
-         Charset         =   255
+         Name            =   "System"
+         Size            =   9.75
+         Charset         =   0
          Weight          =   700
          Underline       =   0   'False
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
       Height          =   315
-      Left            =   120
+      Left            =   60
       TabIndex        =   0
-      Top             =   5760
-      Width           =   9315
+      Top             =   6240
+      Width           =   12795
    End
 End
 Attribute VB_Name = "Sender"
@@ -114,10 +124,16 @@ Private Const WM_GETTEXT = &HD
 Private Const WM_GETTEXTLENGTH = &HE
 Private Const WM_SETTEXT = &HC
 Private Const BM_CLICK As Long = &HF5
+Private Sub cmdClear_Click()
+    lstLog.Clear
+End Sub
 Private Sub cmdConnect_Click()
     ' Invoke the Connect method to initiate a
     ' connection.
     Logger "Connecting to " & strRemoteComputer
+    TCPClient.Close
+    TCPClient.RemoteHost = strRemoteComputer '"RemoteComputerName"
+    TCPClient.RemotePort = strPort
     TCPClient.Connect
 End Sub
 Private Sub cmdSendCommand_Click()
@@ -146,21 +162,22 @@ Private Sub Form_Load()
     TCPClient.RemoteHost = strRemoteComputer '"RemoteComputerName"
     TCPClient.RemotePort = strPort
     Logger "Ready..."
-    
 End Sub
-
 Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
-TCPClient.Close
+    TCPClient.Close
 End Sub
-
 Private Sub Form_Resize()
-lstLog.Height = Sender.Height - 1650
-lstLog.Width = Sender.Width - 465
-txtCommand.Top = Sender.Height - 990
-txtCommand.Width = Sender.Width - 465
-
+    On Error Resume Next
+    lstLog.Height = Sender.Height - 1550
+    lstLog.Width = Sender.Width - 365
+    txtCommand.Top = Sender.Height - 990
+    txtCommand.Width = Sender.Width - 365
 End Sub
-
+Private Sub TCPClient_Close()
+    TCPClient.Close
+    TCPClient.RemoteHost = strRemoteComputer '"RemoteComputerName"
+    TCPClient.RemotePort = strPort
+End Sub
 Private Sub TCPClient_DataArrival(ByVal bytesTotal As Long)
     Dim strData As String
     TCPClient.GetData strData
