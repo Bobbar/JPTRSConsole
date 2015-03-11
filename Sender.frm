@@ -1,8 +1,9 @@
 VERSION 5.00
 Object = "{248DD890-BB45-11CF-9ABC-0080C7E7B78D}#1.0#0"; "MSWINSCK.OCX"
+Object = "{3B7C8863-D78F-101B-B9B5-04021C009402}#1.2#0"; "RICHTX32.OCX"
 Begin VB.Form Sender 
    Caption         =   "JPTRS Console"
-   ClientHeight    =   6645
+   ClientHeight    =   6600
    ClientLeft      =   120
    ClientTop       =   450
    ClientWidth     =   12915
@@ -17,20 +18,25 @@ Begin VB.Form Sender
    EndProperty
    Icon            =   "Sender.frx":0000
    LinkTopic       =   "Form1"
-   ScaleHeight     =   6645
+   ScaleHeight     =   6600
    ScaleWidth      =   12915
    StartUpPosition =   3  'Windows Default
-   Begin VB.CommandButton cmdClear 
-      Caption         =   "Clear"
-      Height          =   360
-      Left            =   1320
+   Begin RichTextLib.RichTextBox rtbLog 
+      Height          =   5535
+      Left            =   60
       TabIndex        =   4
-      Top             =   120
-      Width           =   990
-   End
-   Begin VB.ListBox lstLog 
-      BackColor       =   &H00000000&
-      BeginProperty Font 
+      Top             =   600
+      Width           =   12795
+      _ExtentX        =   22569
+      _ExtentY        =   9763
+      _Version        =   393217
+      BackColor       =   0
+      Enabled         =   -1  'True
+      ReadOnly        =   -1  'True
+      ScrollBars      =   3
+      DisableNoScroll =   -1  'True
+      TextRTF         =   $"Sender.frx":08CA
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "System"
          Size            =   9.75
          Charset         =   0
@@ -39,12 +45,14 @@ Begin VB.Form Sender
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      ForeColor       =   &H00FFFFFF&
-      Height          =   5580
-      Left            =   60
+   End
+   Begin VB.CommandButton cmdClear 
+      Caption         =   "Clear"
+      Height          =   360
+      Left            =   1320
       TabIndex        =   3
-      Top             =   600
-      Width           =   12795
+      Top             =   120
+      Width           =   990
    End
    Begin VB.CommandButton cmdConnect 
       Caption         =   "Connect"
@@ -83,7 +91,7 @@ Begin VB.Form Sender
       Height          =   315
       Left            =   60
       TabIndex        =   0
-      Top             =   6240
+      Top             =   6300
       Width           =   12795
    End
 End
@@ -125,12 +133,12 @@ Private Const WM_GETTEXTLENGTH = &HE
 Private Const WM_SETTEXT = &HC
 Private Const BM_CLICK As Long = &HF5
 Private Sub cmdClear_Click()
-    lstLog.Clear
+   rtbLog.Text = ""
 End Sub
 Private Sub cmdConnect_Click()
     ' Invoke the Connect method to initiate a
     ' connection.
-    Logger "Connecting to " & strRemoteComputer
+    Logger ">> Connecting to " & strRemoteComputer, vbGreen
     TCPClient.Close
     TCPClient.RemoteHost = strRemoteComputer '"RemoteComputerName"
     TCPClient.RemotePort = strPort
@@ -168,11 +176,15 @@ Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
 End Sub
 Private Sub Form_Resize()
     On Error Resume Next
-    lstLog.Height = Sender.Height - 1550
-    lstLog.Width = Sender.Width - 365
+    rtbLog.Height = Sender.Height - 1550
+    rtbLog.Width = Sender.Width - 365
     txtCommand.Top = Sender.Height - 990
     txtCommand.Width = Sender.Width - 365
 End Sub
+Private Sub rtbLog_KeyDown(KeyCode As Integer, Shift As Integer)
+    rtbLog.SelColor = vbWhite
+End Sub
+
 Private Sub TCPClient_Close()
     TCPClient.Close
     TCPClient.RemoteHost = strRemoteComputer '"RemoteComputerName"
@@ -181,8 +193,9 @@ End Sub
 Private Sub TCPClient_DataArrival(ByVal bytesTotal As Long)
     Dim strData As String
     TCPClient.GetData strData
-    ParsePacket strData
+    BuildPacket strData
 End Sub
+
 Private Sub txtCommand_KeyPress(KeyAscii As Integer)
     If KeyAscii = 13 Then
         SendCommand Trim$(txtCommand.Text)

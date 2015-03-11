@@ -1,5 +1,5 @@
 Attribute VB_Name = "SocketModule"
-Public Const strRemoteComputer As String = "ohbre-pwadmin01"
+Public Const strRemoteComputer As String = "localhost" '"ohbre-pwadmin01"
 Public Const strPort           As String = "1001"
 Public strSocketData           As String
 Public strSocketRequestID      As String
@@ -16,10 +16,14 @@ Public Const TerminatePacket As String = "TERM"
 Public Const PasswordPacket  As String = "PWD"
 Public Const LogPacket       As String = "LOG"
 Public Const NamePacket      As String = "NAME"
+Public Const ResponsePacket  As String = "RESP"
 Public bolWaitingForPass     As Boolean
+Private strPacket            As String
+Private bolSplitPacket       As Boolean
 Public Sub SendCommand(Command As String)
+    On Error Resume Next
     Dim tmpString As String
-    Logger ">> " & Command
+    Logger ">> " & Command, vbGreen
     If bolWaitingForPass Then
         tmpString = strComputerID & "," & PasswordPacket & "," & Command
     Else
@@ -27,24 +31,46 @@ Public Sub SendCommand(Command As String)
     End If
     Sender.TCPClient.SendData tmpString
 End Sub
+Public Sub BuildPacket(Data As String) 'compile and separate packet chunks
+    Dim tmpData    As String
+    Dim lngDataLen As Long, lngCurPos As Long
+    tmpData = Data
+    lngDataLen = Len(tmpData)
+    lngCurPos = 0
+    Do
+        If InStr(1, tmpData, Chr$(1)) > 0 And InStr(1, tmpData, Chr$(4)) > 0 And Not bolSplitPacket Then 'if there is a start and end marker (Complete Packet)
+            strPacket = Replace(Replace(Left$(tmpData, InStr(1, tmpData, Chr$(4))), Chr$(1), ""), Chr$(4), "") 'get data between markers
+            ParsePacket strPacket 'send data to be parsed
+            tmpData = Mid$(tmpData, InStr(1, tmpData, Chr$(4)) + 1, Len(tmpData)) 'trim out used data
+        ElseIf InStr(1, tmpData, Chr$(1)) > 0 And InStr(1, tmpData, Chr$(4)) = 0 Then 'if there is a start but no end marker  (Start Packet)
+            strPacket = Replace$(tmpData, Chr$(1), "") 'take all the data
+            tmpData = ""
+            bolSplitPacket = True
+        ElseIf InStr(1, tmpData, Chr$(1)) = 0 And InStr(1, tmpData, Chr$(4)) > 0 Or bolSplitPacket Then  'if there is and end but no start  (End Packet)
+            strPacket = strPacket + Replace(Left$(tmpData, InStr(1, tmpData, Chr$(4))), Chr$(4), "") 'take all data until end marker
+            ParsePacket strPacket 'send data to be parsed
+            tmpData = Mid$(tmpData, InStr(1, tmpData, Chr$(4)) + 1, Len(tmpData))
+            bolSplitPacket = False
+        ElseIf InStr(1, tmpData, Chr$(1)) = 0 And InStr(1, tmpData, Chr$(4)) = 0 Then 'if no end and no start  (Tweener Packet)
+            strPacket = strPacket + tmpData 'take all the data
+            tmpData = ""
+            bolSplitPacket = True
+        End If
+    Loop Until Len(tmpData) = 0
+End Sub
 Public Sub ParsePacket(Data As String)
     On Error GoTo errs
     Dim SplitData
     Dim SplitPackets
     Dim i As Integer
-    'Dim PacketData As PacketType
-    SplitPackets = Split(Data, Chr$(1))
-    For i = 1 To UBound(SplitPackets)
-        SplitData = Split(SplitPackets(i), ",", 3)
-        PacketData.ID = SplitData(0)
-        PacketData.Type = SplitData(1)
-        PacketData.DataString = SplitData(2)
-        HandlePacket PacketData
-    Next i
-    ' If PacketData.ID = strComputerID Then HandlePacket PacketData
+    SplitData = Split(Data, ",", 3)
+    PacketData.ID = SplitData(0)
+    PacketData.Type = SplitData(1)
+    PacketData.DataString = SplitData(2)
+    HandlePacket PacketData
     Exit Sub
 errs:
-    Logger "Parser Error! Raw Data: " & Data
+    Logger "Parser Error! Raw Data: " & Data, vbRed
     Resume Next
 End Sub
 Public Function AuthPacket(Packet As PacketType) As Boolean
@@ -68,12 +94,14 @@ Public Sub HandlePacket(Packet As PacketType)
                 GiveName
             End If
         Case LogPacket
-            Logger Packet.DataString
+            Logger "<< " & Packet.DataString
+        Case ResponsePacket
+            Logger "<< " & Packet.DataString, vbYellow
     End Select
 End Sub
 Public Sub GiveName()
     Dim tmpString As String
-    Logger "Sending Computer Name..."
+    Logger ">> Sending Computer Name...", vbGreen
     tmpString = strComputerID & "," & NamePacket & "," & strComputerID
     Sender.TCPClient.SendData tmpString
 End Sub
